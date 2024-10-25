@@ -1,0 +1,89 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String
+  role          Role      @default(USER)
+  applications  VisaApplication[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Country {
+  id            String    @id @default(cuid())
+  name          String
+  code          String    @unique
+  visaTypes     VisaType[]
+  requirements  Json
+  applications  VisaApplication[]
+}
+
+model VisaType {
+  id            String    @id @default(cuid())
+  name          String
+  countryId     String
+  price         Float
+  processingTime Int
+  requirements  Json
+  country       Country   @relation(fields: [countryId], references: [id])
+  applications  VisaApplication[]
+}
+
+model VisaApplication {
+  id            String    @id @default(cuid())
+  userId        String
+  countryId     String
+  visaTypeId    String
+  status        ApplicationStatus @default(PENDING)
+  documents     Json
+  payment       Payment?
+  user          User      @relation(fields: [userId], references: [id])
+  country       Country   @relation(fields: [countryId], references: [id])
+  visaType      VisaType  @relation(fields: [visaTypeId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Payment {
+  id                String    @id @default(cuid())
+  applicationId     String    @unique
+  amount            Float
+  currency          String
+  status            PaymentStatus
+  stripeSessionId   String?
+  application       VisaApplication @relation(fields: [applicationId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPPORT
+}
+
+enum ApplicationStatus {
+  PENDING
+  REVIEWING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
